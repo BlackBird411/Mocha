@@ -75166,7 +75166,7 @@ local renderStepped = Signal.new(runService.RenderStepped)
 local menuMaid = Maid.new()
 
 -- Constants.
-local VERSION = "1.1.0"
+local VERSION = "1.1.2"
 local WATERMARK_TITLE = "Mocha"
 Menu.VERSION = VERSION
 
