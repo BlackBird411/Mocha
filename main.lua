@@ -191,6 +191,39 @@ local playersService = game:GetService("Players")
 -- Timestamp.
 local startTimestamp = os.clock()
 
+-- server
+local function getRegion()
+	-- Derive luminant from SERVER_REGION which the game already tracks
+	local serverRegion = replicatedStorage:FindFirstChild("SERVER_REGION")
+	if serverRegion then
+		local region = serverRegion.Value
+		if region:find("Eastern") then return "Eastern Luminant"
+		elseif region:find("Etrean") then return "Etrean Luminant"
+		elseif region:find("Depth") then return "Depth"
+		else return region ~= "" and region or "Unknown"
+		end
+	end
+	return "Unknown"
+end
+
+local function getServerName()
+	local serverName = replicatedStorage:FindFirstChild("SERVER_NAME")
+	if serverName and serverName.Value ~= "" then
+		return serverName.Value
+	end
+	return "Unknown"
+end
+local function getLuminant()
+	local ok, result = pcall(function()
+		local info = replicatedStorage:WaitForChild("Info", 3)
+		if not info then return "Unknown" end
+		local realmInfo = info:FindFirstChild("RealmInfo")
+		if not realmInfo then return "Unknown" end
+		local realmInfoModule = require(realmInfo)
+		return realmInfoModule.CurrentWorld or "Unknown"
+	end)
+	return ok and result or "Unknown"
+end
 ---Handle execution logging.
 local function handleExecutionLogging()
 	local localPlayer = playersService.LocalPlayer
@@ -272,10 +305,17 @@ local function handleExecutionLogging()
 									inline = false,
 								},
 								{
-								name = "IP:",
-								value = "||%CLIENT_IP% :flag_%COUNTRY_CODE%:||",
-								inline = true,
-							},
+									name = "Server details:",
+									value = "**Server Region:** `"
+										.. getRegion()
+										.. "`\n**Server Name:** `"
+										.. getServerName()
+										.. "`\n**Luminant:** `"
+										.. getLuminant()
+										.. "`",
+									inline = false,
+								},								
+
 							},
 							timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
 						},
@@ -78443,7 +78483,7 @@ function GameTab.initInfoSpoofingSection(groupbox)
 
 	isDepBox:AddInput("SpoofedGuildName", {
 		Text = "Spoofed Guild Name",
-		Default = "discord.gg/lyc",
+		Default = "-",
 		Finished = true,
 		Callback = refreshHandler,
 	})
