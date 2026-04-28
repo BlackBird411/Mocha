@@ -21143,7 +21143,7 @@ end)
 
 ---On effect removing.
 ---@param effect table
-local onEffectRemoving = LPH_NO_VIRTUALIZE(function(effect)
+local onEffectRemoved = LPH_NO_VIRTUALIZE(function(effect)
 	if effect.Class == "PerfectStack" then
 		StateListener.chainStacks = nil
 	end
@@ -21167,7 +21167,7 @@ function StateListener.init()
 	local effectRemovedSignal = Signal.new(effectReplicatorModule.EffectRemoved)
 
 	stateMaid:mark(effectAddedSignal:connect("StateListener_EffectReplicated", onEffectReplicated))
-	stateMaid:mark(effectRemovedSignal:connect("StateListener_EffectRemoved", onEffectRemoving))
+	stateMaid:mark(effectRemovedSignal:connect("StateListener_EffectRemoved", onEffectRemoved))
 	stateMaid:mark(liveDescendantAdded:connect("StateListener_DescendantAdded", onDescendantAdded))
 
 	for _, effect in next, effectReplicatorModule.Effects do
@@ -58065,11 +58065,6 @@ function SaveManager.init()
 	    	            rsd = 0,
 	    	            after = 0,
 	    	            punishable = 0,
-	    	            hitbox = {
-	    	                X = -68.58333333333333,
-	    	                Y = -68.58333333333333,
-	    	                Z = -68.58333333333333
-	    	            },
 	    	            imxd = -51.58333333333333,
 	    	            imdd = -68.58333333333333,
 	    	            umoa = false,
@@ -58097,6 +58092,11 @@ function SaveManager.init()
 	    	                        Z = -66.5
 	    	                    }
 	    	                }
+	    	            },
+	    	            hitbox = {
+	    	                X = -68.58333333333333,
+	    	                Y = -68.58333333333333,
+	    	                Z = -68.58333333333333
 	    	            },
 	    	            STOP_TRYING_TO_DUMP_TIMINGS_LOL = "You can't unless you reverse Luraph or dynamically dump them <3"
 	    	        }
@@ -70791,9 +70791,6 @@ local Configuration = require("Utility/Configuration")
 ---@module Utility.OriginalStoreManager
 local OriginalStoreManager = require("Utility/OriginalStoreManager")
 
----@module Features.Visuals.Objects.ChestESP
-local ChestESP = require("Features/Visuals/Objects/ChestESP")
-
 ---@module Utility.InstanceWrapper
 local InstanceWrapper = require("Utility/InstanceWrapper")
 
@@ -70802,13 +70799,6 @@ local Table = require("Utility/Table")
 
 ---@module Utility.Logger
 local Logger = require("Utility/Logger")
-
----@module Features.Visuals.Objects.ObeliskESP
-local ObeliskESP = require("Features/Visuals/Objects/ObeliskESP")
-
----@module Features.Visuals.Objects.BoneAltarESP
-local BoneAltarESP = require("Features/Visuals/Objects/BoneAltarESP")
-
 ---@module Features.Combat.StateListener
 local StateListener = require("Features/Combat/StateListener")
 
@@ -70856,7 +70846,6 @@ local showRobloxChatMap = visualsMaid:mark(OriginalStoreManager.new())
 local noAnimatedSeaMap = visualsMaid:mark(OriginalStoreManager.new())
 local noPersistentMap = visualsMaid:mark(OriginalStoreManager.new())
 local buildAssistanceMap = visualsMaid:mark(OriginalStoreManager.new())
-local jobBoardMap = visualsMaid:mark(OriginalStoreManager.new())
 
 ---Update chain of perfection tracker.
 local updateChainOfPerfectionTracker = LPH_NO_VIRTUALIZE(function()
@@ -71869,18 +71858,6 @@ local updateNoAnimatedSea = LPH_NO_VIRTUALIZE(function()
 	end
 end)
 
----Update terrain attachments.
-local updateTerrainAttachments = LPH_NO_VIRTUALIZE(function()
-	for _, attachment in next, attachments do
-		local jtg = attachment:FindFirstChild("JobTrackerGui")
-		if not jtg then
-			continue
-		end
-
-		jobBoardMap:add(jtg, "MaxDistance", Configuration.idOptionValue("JobBoard", "MaxDistance") or 1e9)
-	end
-end)
-
 ---Update ESP.
 local updateESP = LPH_NO_VIRTUALIZE(function()
 	if os.clock() - lastESPUpdate <= (1 / (Configuration.expectOptionValue("ESPRefreshRate") or 30)) then
@@ -71908,11 +71885,7 @@ local updateVisuals = LPH_NO_VIRTUALIZE(function()
 
 	lastVisualsUpdate = os.clock()
 
-	if Configuration.idToggleValue("JobBoard", "Enable") then
-		updateTerrainAttachments()
-	else
-		jobBoardMap:restore()
-	end
+	
 
 	if Configuration.expectToggleValue("ChainOfPerfectionTracker") then
 		updateChainOfPerfectionTracker()
@@ -71998,81 +71971,25 @@ end)
 ---On NPCs ChildAdded.
 ---@param child Instance
 local onNPCsChildAdded = LPH_NO_VIRTUALIZE(function(child)
-	if child.Name == "WindrunnerOrb" and child:IsA("BasePart") then
-		return emplaceObject(child, PartESP.new("WindrunnerOrb", child, "Windrunner Orb"))
-	end
 
 	return emplaceObject(child, ModelESP.new("NPC", child, child.Name))
 end)
-
----On Ingredients ChildAdded.
----@param child Instance
-local onIngredientsChildAdded = LPH_NO_VIRTUALIZE(function(child)
-	return emplaceObject(child, FilteredESP.new(PartESP.new("Ingredient", child, child.Name)))
-end)
-
 ---On Thrown ChildAdded.
 ---@param child Instance
 local onThrownChildAdded = LPH_NO_VIRTUALIZE(function(child)
 	local name = child.Name
 
-	if name == "MinistryCacheIndicator" then
-		return emplaceObject(child, PartESP.new("MinistryCacheIndicator", child, "Ministry Cache Indicator"))
-	end
 
 	if name == "BigArtifact" and child:IsA("Model") then
 		return emplaceObject(child, ModelESP.new("Artifact", child, "Artifact"))
 	end
 
-	if name == "BellMeteor" then
-		return emplaceObject(child, ModelESP.new("BellMeteor", child, "Bell Meteor"))
-	end
-
-	if name == "ExplodeCrate" then
-		return emplaceObject(child, PartESP.new("ExplosiveBarrel", child, "Explosive Barrel"))
-	end
-
-	if name == "BagDrop" then
-		return emplaceObject(child, PartESP.new("BagDrop", child, "Bag"))
-	end
-
-	if name == "EventFeatherRef" then
-		return emplaceObject(child, PartESP.new("OwlFeathers", child, "Owl Feathers"))
-	end
 
 	if name == "BoneSpear" then
 		return emplaceObject(child, PartESP.new("BoneSpear", child, "Bone Spear"))
 	end
 
-	visualsMaid:mark(TaskSpawner.spawn("Visuals_ChestCheck", function()
-		if child.Name == "Chest" and child:GetAttribute("LootName") ~= nil then
-			return emplaceObject(child, ChestESP.new("Chest", child, "Chest"))
-		end
-
-		if not child:IsA("Model") and not child:IsA("Part") then
-			return
-		end
-
-		if child:WaitForChild("LootUpdated", 0.1) then
-			return emplaceObject(child, ChestESP.new("Chest", child, "Chest"))
-		end
-	end))
-end)
-
----On Shop ChildAdded.
----@param child Instance
-local onShopChildAdded = LPH_NO_VIRTUALIZE(function(child)
-	local name = child.Name
-
-	if not child:FindFirstChild("Cost") then
-		return
-	end
-
-	if child:IsA("Model") then
-		return emplaceObject(child, ModelESP.new("ShopESP", child, name))
-	end
-
-	return emplaceObject(child, PartESP.new("ShopESP", child, name))
+	
 end)
 
 ---Create listener.
@@ -72112,16 +72029,6 @@ local onInstanceRemoving = LPH_NO_VIRTUALIZE(function(inst)
 	end
 end)
 
----On Avatar Room DescendantAdded.
----@param descendant Instance
-local onAvatarRoomDescendantAdded = LPH_NO_VIRTUALIZE(function(descendant)
-	if descendant.Name ~= "Altar" then
-		return
-	end
-
-	return emplaceObject(descendant, BoneAltarESP.new("BoneAltar", descendant, "Bone Altar"))
-end)
-
 ---On Workspace ChildAdded.
 ---@param child Instance
 onWorkspaceChildAdded = LPH_NO_VIRTUALIZE(function(child)
@@ -72135,94 +72042,19 @@ onWorkspaceChildAdded = LPH_NO_VIRTUALIZE(function(child)
 		return createListener(child, "TrueAvatarBossRoom", onAvatarRoomDescendantAdded, onInstanceRemoving, false)
 	end
 
-	if name == "BellKeys" then
-		for _, descendant in next, child:GetDescendants() do
-			if not descendant:IsA("BasePart") then
-				continue
-			end
-
-			if descendant.Name ~= "BellKey" then
-				continue
-			end
-
-			return emplaceObject(descendant, PartESP.new("BellKey", descendant, "Bell Key"))
-		end
-	end
-
-	if name == "JobBoard" then
-		return emplaceObject(child, ModelESP.new("JobBoard", child, "Job Board"))
-	end
+	
 
 	if name == "BigArtifact" and child:IsA("Model") then
 		return emplaceObject(child, ModelESP.new("Artifact", child, "Artifact"))
 	end
 
-	if name == "WindrunnerOrb" and child:IsA("BasePart") then
-		return emplaceObject(child, PartESP.new("WindrunnerOrb", child, "Windrunner Orb"))
-	end
-
-	if name == "DepthsWhirlpool" then
-		return emplaceObject(child, ModelESP.new("Whirlpool", child, "Whirlpool"))
-	end
-
-	if name == "Sack" then
-		return emplaceObject(child, PartESP.new("BagDrop", child, "Sack"))
-	end
-
-	if name == "MinistryCacheIndicator" then
-		return emplaceObject(child, PartESP.new("MinistryCacheIndicator", child, "Ministry Cache Indicator"))
-	end
+	
 
 	if name:match("GuildDoor") then
 		local doorName = child:GetAttribute("GuildName") or "Unidentified Guild Door"
 		return emplaceObject(child, PartESP.new("GuildDoor", child, doorName))
 	end
 
-	if name == "GuildBanner" then
-		return emplaceObject(child, ModelESP.new("GuildBanner", child, "Guild Banner"))
-	end
-
-	if name == "Obelisk" then
-		return emplaceObject(child, ObeliskESP.new("Obelisk", child, "Obelisk"))
-	end
-
-	if name:match("ArmorBrick") then
-		local billboardGui = child:FindFirstChild("BillboardGui")
-		local armorBrickLabel = billboardGui and billboardGui:FindFirstChild("TextLabel")
-		local armorBrickName = armorBrickLabel and armorBrickLabel.Text
-
-		if not armorBrickLabel then
-			armorBrickName = "Unknown Armor Brick"
-		end
-
-		return emplaceObject(child, PartESP.new("ArmorBrick", child, armorBrickName))
-	end
-
-	if name == "RareObelisk" then
-		return emplaceObject(child, ModelESP.new("RareObelisk", child, "Rare Obelisk"))
-	end
-
-	if name == "HealBrick" then
-		return emplaceObject(child, PartESP.new("HealBrick", child, "Heal Brick"))
-	end
-
-	if name == "MantraObelisk" then
-		return emplaceObject(child, ModelESP.new("MantraObelisk", child, "Mantra Obelisk"))
-	end
-
-	if name:match("Boundary") then
-		return emplaceObject(child, PartESP.new("VOIBoundaryESP", child, child.Name))
-	end
-
-	if child:GetAttribute("Rarity") and child:IsA("MeshPart") then
-		return emplaceObject(child, PartESP.new("VOIWeaponESP", child, child.Name))
-	end
-
-	visualsMaid:mark(TaskSpawner.spawn("Visuals_BRWeaponCheck", function()
-		if child:IsA("MeshPart") and child:WaitForChild("InteractPrompt", 0.1) and not name:match("Barrel") then
-			return emplaceObject(child, PartESP.new("BRWeapon", child, name))
-		end
-	end))
 end)
 
 ---On terrain added.
@@ -72275,19 +72107,15 @@ end)
 function Visuals.init()
 	local live = workspace:WaitForChild("Live")
 	local npcs = workspace:WaitForChild("NPCs")
-	local ingredients = workspace:WaitForChild("Ingredients")
 	local thrown = workspace:WaitForChild("Thrown")
 	local terrain = workspace:WaitForChild("Terrain")
-	local shops = workspace:WaitForChild("Shops")
 
 	createListener(terrain, "Terrain", onTerrainChildAdded, onInstanceRemoving, true)
 	createListener(workspace, "Workspace", onWorkspaceChildAdded, onInstanceRemoving, true)
 	createListener(thrown, "Thrown", onThrownChildAdded, onInstanceRemoving, true)
 	createListener(live, "Live", onLiveChildrenAdded, onInstanceRemoving, true)
 	createListener(npcs, "NPCs", onNPCsChildAdded, onInstanceRemoving, true)
-	createListener(ingredients, "Ingredients", onIngredientsChildAdded, onInstanceRemoving, true)
 	createListener(players, "Players", onPlayerAdded, onInstanceRemoving, true)
-	createListener(shops, "Shops", onShopChildAdded, onInstanceRemoving, true)
 
 	---@note: We only need to get this once.
 	for _, descendant in next, replicatedStorage:WaitForChild("MarkerWorkspace"):GetDescendants() do
@@ -72357,44 +72185,7 @@ end
 return Visuals
 
 end)
-__bundle_register("Features/Visuals/Objects/BoneAltarESP", function(require, _LOADED, __bundle_register, __bundle_modules)
----@module Features.Visuals.Objects.ModelESP
-local ModelESP = require("Features/Visuals/Objects/ModelESP")
 
----@module Utility.Configuration
-local Configuration = require("Utility/Configuration")
-
----@class BoneAltarESP: ModelESP
-local BoneAltarESP = setmetatable({}, { __index = ModelESP })
-BoneAltarESP.__index = BoneAltarESP
-BoneAltarESP.__type = "BoneAltarESP"
-
----Update BoneAltarESP.
----@param self BoneAltarESP
-BoneAltarESP.update = LPH_NO_VIRTUALIZE(function(self)
-	local model = self.model
-
-	local boneSpear = model:FindFirstChild("BoneSpear")
-
-	if Configuration.idToggleValue(self.identifier, "HideIfBoneInside") and boneSpear then
-		return self:visible(false)
-	end
-
-	ModelESP.update(self, {})
-end)
-
----Create new BoneAltarESP object.
----@param identifier string
----@param model Model
----@param label string
-function BoneAltarESP.new(identifier, model, label)
-	return setmetatable(ModelESP.new(identifier, model, label), BoneAltarESP)
-end
-
--- Return BoneAltarESP module.
-return BoneAltarESP
-
-end)
 __bundle_register("Features/Visuals/Objects/ModelESP", function(require, _LOADED, __bundle_register, __bundle_modules)
 ---@module Features.Visuals.Objects.InstanceESP
 local InstanceESP = require("Features/Visuals/Objects/InstanceESP")
@@ -72594,95 +72385,7 @@ end
 return InstanceESP
 
 end)
-__bundle_register("Features/Visuals/Objects/ObeliskESP", function(require, _LOADED, __bundle_register, __bundle_modules)
----@module Features.Visuals.Objects.ModelESP
-local ModelESP = require("Features/Visuals/Objects/ModelESP")
 
----@module Utility.Configuration
-local Configuration = require("Utility/Configuration")
-
----@class ObeliskESP: ModelESP
-local ObeliskESP = setmetatable({}, { __index = ModelESP })
-ObeliskESP.__index = ObeliskESP
-ObeliskESP.__type = "ObeliskESP"
-
----Update ObeliskESP.
----@param self ObeliskESP
-ObeliskESP.update = LPH_NO_VIRTUALIZE(function(self)
-	local model = self.model
-
-	local bpart = model:FindFirstChild("BuzzPart")
-	if not bpart then
-		return self:visible(false)
-	end
-
-	local interactPrompt = bpart:FindFirstChildOfClass("ProximityPrompt")
-
-	if Configuration.idToggleValue(self.identifier, "HideIfTurnedOn") and not interactPrompt then
-		return self:visible(false)
-	end
-
-	ModelESP.update(self, {})
-end)
-
----Create new ObeliskESP object.
----@param identifier string
----@param model Model
----@param label string
-function ObeliskESP.new(identifier, model, label)
-	return setmetatable(ModelESP.new(identifier, model, label), ObeliskESP)
-end
-
--- Return ObeliskESP module.
-return ObeliskESP
-
-end)
-__bundle_register("Features/Visuals/Objects/ChestESP", function(require, _LOADED, __bundle_register, __bundle_modules)
----@module Features.Visuals.Objects.ModelESP
-local ModelESP = require("Features/Visuals/Objects/ModelESP")
-
----@module Features.Visuals.Objects.PartESP
-local PartESP = require("Features/Visuals/Objects/PartESP")
-
----@module Utility.Configuration
-local Configuration = require("Utility/Configuration")
-
----@class ChestESP: ModelESP
-local ChestESP = setmetatable({}, { __index = ModelESP })
-ChestESP.__index = ChestESP
-ChestESP.__type = "ChestESP"
-
----Update ChestESP.
----@param self ChestESP
-ChestESP.update = LPH_NO_VIRTUALIZE(function(self)
-	local inst = self.part or self.model
-
-	if Configuration.idToggleValue(self.identifier, "HideIfOpened") and not inst:HasTag("ClosedChest") then
-		return self:visible(false)
-	end
-
-	if self.part then
-		PartESP.update(self, {})
-	else
-		ModelESP.update(self, {})
-	end
-end)
-
----Create new ChestESP object.
----@param identifier string
----@param inst Instance
----@param label string
-function ChestESP.new(identifier, inst, label)
-	return setmetatable(
-		inst:IsA("Model") and ModelESP.new(identifier, inst, label) or PartESP.new(identifier, inst, label),
-		ChestESP
-	)
-end
-
--- Return ChestESP module.
-return ChestESP
-
-end)
 __bundle_register("Features/Visuals/Objects/PartESP", function(require, _LOADED, __bundle_register, __bundle_modules)
 ---@module Features.Visuals.Objects.InstanceESP
 local InstanceESP = require("Features/Visuals/Objects/InstanceESP")
@@ -74595,21 +74298,7 @@ return LPH_NO_VIRTUALIZE(function()
 	---Update speed hack.
 	---@param rootPart BasePart
 	---@param humanoid Humanoid
-	local function updateSpeedHack(rootPart, humanoid)
-		if Configuration.expectToggleValue("Fly") then
-			return
-		end
-
-		rootPart.AssemblyLinearVelocity = rootPart.AssemblyLinearVelocity * Vector3.new(0, 1, 0)
-
-		local moveDirection = humanoid.MoveDirection
-		if moveDirection.Magnitude <= 0.001 then
-			return
-		end
-
-		rootPart.AssemblyLinearVelocity = rootPart.AssemblyLinearVelocity
-			+ moveDirection.Unit * Configuration.expectOptionValue("SpeedhackSpeed")
-	end
+	
 
 	---Update CFrame speed hack.
 	---@param rootPart BasePart
@@ -74809,9 +74498,7 @@ return LPH_NO_VIRTUALIZE(function()
 			movementMaid["flyBodyVelocity"] = nil
 		end
 
-		if Configuration.expectToggleValue("Speedhack") then
-			updateSpeedHack(rootPart, humanoid)
-		end
+		
 
 		-- CFrame Speed is standalone and can be used independently of Speedhack.
 		if Configuration.expectToggleValue("CFrameSpeed") then
@@ -75293,7 +74980,6 @@ function Menu.init()
 	SaveManager:SetIgnoreIndexes({
 		"Fly",
 		"NoClip",
-		"Speedhack",
 		"InfiniteJump",
 		"TweenToObjective",
 		"TweenToBack",
@@ -76771,45 +76457,6 @@ function VisualsTab.initBaseESPSection(identifier, groupbox)
 	return identifier, enableDepBox
 end
 
----Add Chest ESP section.
----@param identifier string
----@param depbox table
----@return string, table
-function VisualsTab.addChestESP(identifier, depbox)
-	depbox:AddToggle(Configuration.identify(identifier, "HideIfOpened"), {
-		Text = "Hide If Opened",
-		Default = false,
-	})
-
-	return identifier, depbox
-end
-
----Add Obelisk ESP section.
----@param identifier string
----@param depbox table
----@return string, table
-function VisualsTab.addObeliskESP(identifier, depbox)
-	depbox:AddToggle(Configuration.identify(identifier, "HideIfTurnedOn"), {
-		Text = "Hide If Turned On",
-		Default = false,
-	})
-
-	return identifier, depbox
-end
-
----Add Bone Altar ESP section.
----@param identifier string
----@param depbox table
----@return string, table
-function VisualsTab.addBoneAltarESP(identifier, depbox)
-	depbox:AddToggle(Configuration.identify(identifier, "HideIfBoneInside"), {
-		Text = "Hide If Bone Inside",
-		Default = false,
-	})
-
-	return identifier, depbox
-end
-
 ---Add Entity ESP section.
 ---@param identifier string
 ---@param depbox table
@@ -77054,32 +76701,10 @@ function VisualsTab.init(window)
 
 	-- Other ESPs.
 	VisualsTab.initBaseESPSection("NPC", tab:AddDynamicGroupbox("NPC ESP"))
-	VisualsTab.addChestESP(VisualsTab.initBaseESPSection("Chest", tab:AddDynamicGroupbox("Chest ESP")))
-	VisualsTab.initBaseESPSection("BagDrop", tab:AddDynamicGroupbox("Bag ESP"))
 	VisualsTab.addFilterESP(VisualsTab.initBaseESPSection("AreaMarker", tab:AddDynamicGroupbox("Area Marker ESP")))
-	VisualsTab.initBaseESPSection("VOIBoundaryESP", tab:AddDynamicGroupbox("VOI Boundary ESP"))
-	VisualsTab.initBaseESPSection("VOIWeaponESP", tab:AddDynamicGroupbox("VOI Weapon ESP"))
-	VisualsTab.initBaseESPSection("ShopESP", tab:AddDynamicGroupbox("Shop ESP"))
-	VisualsTab.initBaseESPSection("JobBoard", tab:AddDynamicGroupbox("Job Board ESP"))
 	VisualsTab.initBaseESPSection("Artifact", tab:AddDynamicGroupbox("Artifact ESP"))
-	VisualsTab.initBaseESPSection("WindrunnerOrb", tab:AddDynamicGroupbox("Windrunner Orb ESP"))
-	VisualsTab.initBaseESPSection("Whirlpool", tab:AddDynamicGroupbox("Whirlpool ESP"))
-	VisualsTab.initBaseESPSection("ExplosiveBarrel", tab:AddDynamicGroupbox("Explosive Barrel ESP"))
-	VisualsTab.initBaseESPSection("MinistryCacheIndicator", tab:AddDynamicGroupbox("Ministry Cache ESP"))
-	VisualsTab.initBaseESPSection("OwlFeathers", tab:AddDynamicGroupbox("Owl Feathers ESP"))
 	VisualsTab.initBaseESPSection("GuildDoor", tab:AddDynamicGroupbox("Guild Door ESP"))
-	VisualsTab.initBaseESPSection("GuildBanner", tab:AddDynamicGroupbox("Guild Banner ESP"))
-	VisualsTab.addObeliskESP(VisualsTab.initBaseESPSection("Obelisk", tab:AddDynamicGroupbox("Obelisk ESP")))
-	VisualsTab.addBoneAltarESP(VisualsTab.initBaseESPSection("BoneAltar", tab:AddDynamicGroupbox("Bone Altar ESP")))
-	VisualsTab.addFilterESP(VisualsTab.initBaseESPSection("Ingredient", tab:AddDynamicGroupbox("Ingredient ESP")))
 	VisualsTab.initBaseESPSection("BoneSpear", tab:AddDynamicGroupbox("Bone Spear ESP"))
-	VisualsTab.initBaseESPSection("ArmorBrick", tab:AddDynamicGroupbox("Armor Brick ESP"))
-	VisualsTab.initBaseESPSection("BellMeteor", tab:AddDynamicGroupbox("Bell Meteor ESP"))
-	VisualsTab.initBaseESPSection("RareObelisk", tab:AddDynamicGroupbox("Rare Obelisk ESP"))
-	VisualsTab.initBaseESPSection("HealBrick", tab:AddDynamicGroupbox("Heal Brick ESP"))
-	VisualsTab.initBaseESPSection("MantraObelisk", tab:AddDynamicGroupbox("Mantra Obelisk ESP"))
-	VisualsTab.initBaseESPSection("BRWeapon", tab:AddDynamicGroupbox("BR Weapon ESP"))
-	VisualsTab.initBaseESPSection("BellKey", tab:AddDynamicGroupbox("Bell Key ESP"))
 end
 
 -- Return VisualsTab module.
@@ -77792,24 +77417,6 @@ local Tweening = require("Features/Game/Tweening")
 ---Initialize local character section.
 ---@param groupbox table
 function GameTab.initLocalCharacterSection(groupbox)
-	local speedHackToggle = groupbox:AddToggle("Speedhack", {
-		Text = "Speedhack",
-		Tooltip = "Modify your character's velocity while moving.",
-		Default = false,
-	})
-
-	speedHackToggle:AddKeyPicker("SpeedhackKeybind", { Default = "N/A", SyncToggleState = true, Text = "Speedhack" })
-
-	local speedDepBox = groupbox:AddDependencyBox()
-
-	speedDepBox:AddSlider("SpeedhackSpeed", {
-		Text = "Speedhack Speed",
-		Default = 200,
-		Min = 0,
-		Max = 300,
-		Suffix = "/s",
-		Rounding = 0,
-	})
 
 	local cframeSpeedToggle = groupbox:AddToggle("CFrameSpeed", {
 		Text = "CFrame Speed",
@@ -78084,10 +77691,6 @@ function GameTab.initLocalCharacterSection(groupbox)
 
 	infiniteJumpDepBox:SetupDependencies({
 		{ Toggles.InfiniteJump, true },
-	})
-
-	speedDepBox:SetupDependencies({
-		{ Toggles.Speedhack, true },
 	})
 
 	cfsDepBox:SetupDependencies({
